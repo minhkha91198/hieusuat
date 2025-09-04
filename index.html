@@ -1,212 +1,60 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quản lý hiệu suất 30 phút</title>
-  <style>
-    :root{
-      --bg:#0f1115; --panel:#171923; --muted:#2a2f3a; --text:#f5f7fb; --sub:#a5adbd;
-      --work:#3b82f6; --study:#22c55e; --rest:#eab308; --life:#fb923c; --other:#a855f7;
-      --grid:#262b36; --accent:#8b93a7;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    .wrap{max-width:1200px;margin:0 auto;padding:20px}
-    h1{font-size:22px;margin:0 0 10px}
-    .legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:6px 0 14px}
-    .b{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;background:var(--panel);border-radius:14px;box-shadow:0 0 0 1px #00000033 inset}
-    .dot{width:10px;height:10px;border-radius:999px;display:inline-block}
-    .pill{min-width:150px}
-    .btns{display:flex;gap:10px;margin-left:auto}
-    button{background:#1f2430;border:1px solid var(--muted);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
-    button:hover{border-color:#3a4354}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .board{margin-top:10px;border-radius:16px;overflow:hidden;border:1px solid var(--muted)}
-    .hdr{display:grid;grid-template-columns:110px repeat(7,1fr);background:var(--panel);border-bottom:1px solid var(--muted)}
-    .hdr div{padding:14px 10px;color:#c9cfde;text-align:center}
-    .grid{display:grid;grid-template-columns:110px repeat(7,1fr);}
-    .timeCol{background:#0e1017; border-right:1px solid var(--muted)}
-    .time{height:32px;display:flex;align-items:flex-start;justify-content:flex-end;padding:4px 8px;color:var(--sub);font-size:12px;border-bottom:1px dashed var(--grid)}
-    .day{position:relative;border-right:1px solid var(--muted)}
-    .cell{height:32px;border-bottom:1px dashed var(--grid)}
-    .task{position:absolute;left:8px;right:8px;min-height:32px;border-radius:10px;padding:8px 10px;color:#0b1020;background:#3b82f6;box-shadow:0 6px 18px #00000033, 0 0 0 1px #00000022 inset;user-select:none}
-    .task .title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .task .meta{font-size:11px;color:#0b1020;opacity:.8;margin-top:2px}
-    .task .handle{position:absolute;bottom:-4px;left:34%;right:34%;height:8px;border-radius:999px;background:#00000055;cursor:ns-resize}
-    .work{background:var(--work)} .study{background:var(--study)} .rest{background:var(--rest)} .life{background:var(--life)} .other{background:var(--other)}
-    .tips{color:var(--sub);font-size:12px;margin-top:10px;text-align:right}
-    .kpi{display:flex;gap:10px;flex-wrap:wrap}
-  </style>
+  <!-- Tailwind qua CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="wrap">
-    <div class="row">
-      <h1>Quản lý hiệu suất 30 phút/ô</h1>
-      <div class="btns" style="margin-left:auto">
-        <button id="clearBtn">Xóa tất cả</button>
-        <button id="exportBtn">Xuất JSON</button>
-        <button id="importBtn">Nhập JSON</button>
-      </div>
+<body class="bg-gray-100 text-gray-800">
+
+  <div class="max-w-6xl mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4 text-center">Web quản lý hiệu suất (30 phút/ô)</h1>
+
+    <!-- Lưới thời gian -->
+    <div id="schedule" class="grid grid-cols-8 gap-2">
+      <!-- Cột đầu tiên: thời gian -->
     </div>
-    <div class="legend">
-      <span class="b"><span class="dot" style="background:var(--work)"></span>Công việc</span>
-      <span class="b"><span class="dot" style="background:var(--study)"></span>Học tập</span>
-      <span class="b"><span class="dot" style="background:var(--rest)"></span>Nghỉ ngơi</span>
-      <span class="b"><span class="dot" style="background:var(--life)"></span>Sinh hoạt</span>
-      <span class="b"><span class="dot" style="background:var(--other)"></span>Khác</span>
-    </div>
-    <div class="kpi" id="kpiRow"></div>
-    <div class="board" id="board"></div>
-    <div class="tips">Mẹo: Nhấp đúp vào cột ngày để tạo task · Kéo thân để di chuyển · Kéo thanh dưới để thay đổi độ dài · Tự lưu vào LocalStorage</div>
   </div>
-  <input type="file" id="filePicker" accept="application/json" hidden />
+
   <script>
-    const START_HOUR = 6; 
-    const END_HOUR = 22;  
-    const SLOT_MINUTES = 30;
-    const SLOT_PX = 32;
-    const daysVN = ["Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7","Chủ nhật"];
-    const categories = {
-      work:{label:"Công việc", cls:"work"},
-      study:{label:"Học tập", cls:"study"},
-      rest:{label:"Nghỉ ngơi", cls:"rest"},
-      life:{label:"Sinh hoạt", cls:"life"},
-      other:{label:"Khác", cls:"other"},
-    };
-    let tasks = load();
-    const board = document.getElementById('board');
-    const kpiRow = document.getElementById('kpiRow');
-    function renderKPIs(){
-      kpiRow.innerHTML = '';
-      const totals = calcTotals(tasks);
-      const makeCard = (label,hours)=>`<div class="b pill"><div style="font-size:12px;color:#c9cfde">${label}</div><div style="font-weight:700">${hours.toFixed(1)} giờ</div></div>`;
-      kpiRow.insertAdjacentHTML('beforeend', makeCard('Tổng tuần', totals.week));
-      daysVN.forEach((d,di)=>kpiRow.insertAdjacentHTML('beforeend', makeCard(d, totals.days[di])));
+    // Khung thời gian 30p từ 6h00 đến 22h00
+    const times = [];
+    for (let h = 6; h < 22; h++) {
+      times.push(`${String(h).padStart(2, '0')}:00 - ${String(h)}:30`);
+      times.push(`${String(h).padStart(2, '0')}:30 - ${String(h+1).padStart(2, '0')}:00`);
     }
-    function minutesToLabel(min){
-      const h = Math.floor(min/60), m = min%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
-    }
-    function buildBoard(){
-      const totalSlots = ((END_HOUR-START_HOUR)*60)/SLOT_MINUTES;
-      const hdr = document.createElement('div'); hdr.className='hdr';
-      hdr.innerHTML = `<div></div>`+daysVN.map(d=>`<div>${d}</div>`).join('');
-      const grid = document.createElement('div'); grid.className='grid';
-      const timeCol = document.createElement('div'); timeCol.className='timeCol';
-      for(let i=0;i<totalSlots;i++){
-        const t = START_HOUR*60 + i*SLOT_MINUTES;
-        const label = minutesToLabel(t);
-        const div = document.createElement('div');
-        div.className='time';
-        div.style.height = SLOT_PX+'px';
-        div.textContent = (t%60===0)? label : '';
-        timeCol.appendChild(div);
-      }
-      grid.appendChild(timeCol);
-      for(let d=0; d<7; d++){
-        const col = document.createElement('div'); col.className='day'; col.dataset.day=d;
-        col.style.height = (totalSlots*SLOT_PX)+'px';
-        for(let i=0;i<totalSlots;i++){
-          const cell = document.createElement('div'); cell.className='cell'; cell.dataset.slot=i; cell.style.height=SLOT_PX+'px';
-          col.appendChild(cell);
-        }
-        col.addEventListener('dblclick', (e)=>{
-          const y = e.offsetY; const slot = Math.max(0, Math.round(y/SLOT_PX));
-          openCreateTask(d, slot);
-        });
-        grid.appendChild(col);
-      }
-      board.innerHTML='';
-      board.appendChild(hdr); board.appendChild(grid);
-      tasks.forEach(renderTaskEl);
-      renderKPIs();
-    }
-    function openCreateTask(day, slot){
-      const title = prompt('Tên công việc?'); if(!title) return;
-      const catKeys = Object.keys(categories);
-      const catPrompt = `Chọn nhóm (gõ số):\n${catKeys.map((k,i)=>`${i+1}. ${categories[k].label}`).join('\n')}`;
-      let ci = parseInt(prompt(catPrompt)||'1')-1; if(ci<0||ci>=catKeys.length) ci=0;
-      const len = parseInt(prompt('Số ô 30 phút (ví dụ 2 = 1 giờ)?','2')||'2');
-      const t = {id:uid(), day, slot, len:Math.max(1,len), title, cat:catKeys[ci]};
-      tasks.push(t); save(); renderTaskEl(t); renderKPIs();
-    }
-    function renderTaskEl(t){
-      const col = board.querySelector(`.day[data-day="${t.day}"]`); if(!col) return;
-      const el = document.createElement('div'); el.className = `task ${categories[t.cat]?.cls||'work'}`; el.dataset.id=t.id;
-      el.style.top = (t.slot*SLOT_PX+2)+'px';
-      el.style.height = (t.len*SLOT_PX-4)+'px';
-      el.innerHTML = `<div class="title">${escapeHtml(t.title)}</div><div class="meta">${slotToLabel(t.slot)} • ${(t.len*0.5).toFixed(1)}h</div><div class="handle"></div>`;
-      col.appendChild(el);
-      makeDraggable(el);
-    }
-    function slotToLabel(slot){
-      const startMin = START_HOUR*60 + slot*SLOT_MINUTES;
-      return minutesToLabel(startMin);
-    }
-    function makeDraggable(el){
-      const id = el.dataset.id;
-      let dragging=false, resizing=false, startY=0, startTop=0, startH=0;
-      const handle = el.querySelector('.handle');
-      el.addEventListener('mousedown', (e)=>{
-        if(e.target===handle){resizing=true;} else {dragging=true;}
-        startY=e.clientY; startTop=parseInt(el.style.top); startH=parseInt(el.style.height);
-        document.body.style.userSelect='none';
-      });
-      window.addEventListener('mousemove', (e)=>{
-        if(!dragging && !resizing) return;
-        const dy=e.clientY-startY;
-        if(dragging){ el.style.top = (startTop+dy)+'px'; }
-        if(resizing){ el.style.height = Math.max(SLOT_PX-4, startH+dy)+'px'; }
-      });
-      window.addEventListener('mouseup', ()=>{
-        if(!dragging && !resizing) return;
-        dragging=resizing=false; document.body.style.userSelect='auto';
-        const t = tasks.find(x=>x.id===id); if(!t) return;
-        let top = parseInt(el.style.top); let height = parseInt(el.style.height);
-        let slot = Math.round((top-2)/SLOT_PX); slot = Math.max(0, slot);
-        let len = Math.max(1, Math.round((height+4)/SLOT_PX));
-        const maxLen = ((END_HOUR-START_HOUR)*60)/SLOT_MINUTES - slot;
-        len = Math.min(len, maxLen);
-        t.slot=slot; t.len=len;
-        el.style.top = (slot*SLOT_PX+2)+'px'; el.style.height=(len*SLOT_PX-4)+'px';
-        el.querySelector('.meta').textContent = `${slotToLabel(t.slot)} • ${(t.len*0.5).toFixed(1)}h`;
-        save(); renderKPIs();
-      });
-      el.addEventListener('dblclick', ()=>{
-        const t = tasks.find(x=>x.id===id); if(!t) return;
-        const nt = prompt('Tên mới?', t.title); if(nt===null) return; t.title=nt||t.title;
-        const catKeys = Object.keys(categories);
-        const catPrompt = `Chọn nhóm (gõ số):\n${catKeys.map((k,i)=>`${i+1}. ${categories[k].label}`).join('\n')}`;
-        let ci = parseInt(prompt(catPrompt)||'1')-1; if(ci>=0&&ci<catKeys.length) t.cat=catKeys[ci];
-        el.className = `task ${categories[t.cat]?.cls||'work'}`;
-        el.querySelector('.title').textContent = t.title;
-        save();
-      });
-      el.addEventListener('contextmenu', (e)=>{e.preventDefault(); const ok=confirm('Xóa task này?'); if(!ok) return; removeTask(id); el.remove(); renderKPIs();});
-    }
-    function removeTask(id){ tasks = tasks.filter(t=>t.id!==id); save(); }
-    function calcTotals(list){
-      const days=[0,0,0,0,0,0,0];
-      list.forEach(t=>{ days[t.day]+=t.len*0.5; });
-      const week = days.reduce((a,b)=>a+b,0);
-      return {days, week};
-    }
-    function uid(){ return Math.random().toString(36).slice(2,9); }
-    function save(){ localStorage.setItem('kha-30m-tasks', JSON.stringify(tasks)); }
-    function load(){ try{return JSON.parse(localStorage.getItem('kha-30m-tasks')||'[]');}catch(e){return []} }
-    function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",""":"&quot;","'":"&#039;"}[m])); }
-    document.getElementById('exportBtn').onclick = ()=>{
-      const data = JSON.stringify({version:1, tasks}, null, 2);
-      const blob = new Blob([data], {type:'application/json'});
-      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='hieu-suat-30m.json'; a.click();
-    };
-    document.getElementById('importBtn').onclick = ()=> document.getElementById('filePicker').click();
-    document.getElementById('filePicker').addEventListener('change', async (e)=>{
-      const f = e.target.files[0]; if(!f) return; const text = await f.text();
-      try{ const obj = JSON.parse(text); tasks = obj.tasks||[]; save(); buildBoard(); alert('Nhập dữ liệu thành công!'); }catch(err){ alert('File không hợp lệ.'); }
+
+    const days = ["", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
+
+    const schedule = document.getElementById("schedule");
+
+    // Render header hàng đầu tiên
+    days.forEach(d => {
+      const div = document.createElement("div");
+      div.className = "font-bold bg-green-600 text-white p-2 text-center";
+      div.textContent = d || "Thời gian";
+      schedule.appendChild(div);
     });
-    document.getElementById('clearBtn').onclick = ()=>{ if(confirm('Xóa tất cả task?')){ tasks=[]; save(); buildBoard(); }}
-    buildBoard();
+
+    // Render body: mỗi hàng là 1 khoảng thời gian
+    times.forEach(t => {
+      // Cột thời gian
+      const timeCell = document.createElement("div");
+      timeCell.className = "bg-gray-200 text-sm p-2";
+      timeCell.textContent = t;
+      schedule.appendChild(timeCell);
+
+      // 7 ô trống cho mỗi ngày
+      for (let i = 1; i <= 7; i++) {
+        const cell = document.createElement("div");
+        cell.className =
+          "bg-white border border-gray-300 h-16 p-1 text-xs cursor-pointer hover:bg-yellow-100";
+        cell.contentEditable = true; // cho phép gõ nội dung
+        schedule.appendChild(cell);
+      }
+    });
   </script>
 </body>
 </html>
